@@ -195,7 +195,9 @@ def unfollowUser(userID):
 
     
 
-#needs work - how are the users supposed to know the tweet number?
+# needs work - how are the users supposed to know the tweet number?
+# I removed the like and comment options from the tweet menu. I think we should make them options under this instead so
+# that the user will know the tweet ID 
 def likeTweet(tweetID):
     print("Liking a Tweet")
     tweetToLike = int(input("What tweet do you want to like (enter in number): "))
@@ -219,6 +221,8 @@ def likeTweet(tweetID):
     conn2.close()
 
 # needs work- how does the user know the tweet number? 
+# I removed the like and comment options from the tweet menu. I think we should make them options under this instead so
+# that the user will know the tweet ID 
 def viewComments(tweetID):
     print("Viewing Tweet Comments")
     commentsOnTweet = int(input("What tweet do you want to see their comments (enter in number): "))
