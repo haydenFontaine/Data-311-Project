@@ -5,7 +5,7 @@ conn = sqlite3.connect("twitterlike.db")
 
 conn.execute('''
      CREATE TABLE LOGININFO
-     (USERID    INT PRIMARY KEY,
+     (USERID    INT PRIMARY KEY UNIQUE,
      USERNAME   TEXT UNIQUE,
      PASSWORD   TEXT,
      FULLNAME   TEXT,
@@ -26,14 +26,18 @@ conn.execute('''
      CREATE TABLE FOLLOWT
      (FOLLOWID   INT PRIMARY KEY UNIQUE,
       FOLLOWERUSERID    INT,
-      FOLLOWINGUSERID    INT); 
+      FOLLOWINGUSERID    INT,
+     UNIQUE(FOLLOWERUSERID, FOLLOWINGUSERID)
+     );
     ''')
 
 conn.execute('''
      CREATE TABLE LIKE
      (LIKEID   INT PRIMARY KEY UNIQUE,
       LIKEUSERID INT,
-      TWEETID  TEXT); 
+      TWEETID  TEXT,
+     UNIQUE (LIKEUSERID, TWEETID)
+     ); 
       ''')
 
 conn.execute('''
