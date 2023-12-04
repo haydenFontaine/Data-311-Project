@@ -1,12 +1,11 @@
 import sqlite3
 
 
-
-conn = sqlite3.connect("Table1")
+conn = sqlite3.connect("twitterlike.db")
 
 conn.execute('''
      CREATE TABLE LOGININFO
-     (USERID    INT PRIMARY KEY,
+     (USERID    INT PRIMARY KEY UNIQUE,
      USERNAME   TEXT UNIQUE,
      PASSWORD   TEXT,
      FULLNAME   TEXT,
@@ -14,48 +13,32 @@ conn.execute('''
      PROFILEIMAGE   TEXT,
      REGDATE    DATE); 
     ''')
-conn.commit()
-
-
-
-conn = sqlite3.connect("Table2")
-
+             
 conn.execute('''
      CREATE TABLE TWEETS
      (TWEETID   INT PRIMARY KEY UNIQUE,
       USERID    INT,
       TWEET TEXT,
       TWEETTIME     DATE); 
-    ''')
-conn.commit()
-
-
-
-conn = sqlite3.connect("Table3")
+      ''')
 
 conn.execute('''
      CREATE TABLE FOLLOWT
      (FOLLOWID   INT PRIMARY KEY UNIQUE,
       FOLLOWERUSERID    INT,
-      FOLLOWINGUSERID    INT); 
+      FOLLOWINGUSERID    INT,
+     UNIQUE(FOLLOWERUSERID, FOLLOWINGUSERID)
+     );
     ''')
-conn.commit()
-
-
-
-conn = sqlite3.connect("Table4")
 
 conn.execute('''
      CREATE TABLE LIKE
      (LIKEID   INT PRIMARY KEY UNIQUE,
       LIKEUSERID INT,
-      TWEETID  TEXT); 
-    ''')
-conn.commit()
-
-
-
-conn = sqlite3.connect("Table5")
+      TWEETID  TEXT,
+     UNIQUE (LIKEUSERID, TWEETID)
+     ); 
+      ''')
 
 conn.execute('''
      CREATE TABLE COMMENT
