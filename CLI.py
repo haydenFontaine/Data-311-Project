@@ -89,13 +89,6 @@ def postTweet(userID):
 
 # works, shows tweets of people the user follows
 def viewTimeline(userID):
-
-    conn2 = sqlite3.connect("twitterlike.db")
-    cursor1 = conn2.execute("SELECT * FROM TWEETS")
-
-    for row1 in cursor1:
-        print(row1[2], " Tweet ID:",row1[0])
-
     print("Viewing Timeline\n")
     conn3 = sqlite3.connect("twitterlike.db")
     query = conn3.cursor()
@@ -123,7 +116,7 @@ def viewTimeline(userID):
             else: 
                 print("Invalid Tweet ID. Try again!\n")
         except:
-            print("Invalid Tweet ID. Try again!!!\n")
+            print("Invalid Tweet ID. Try again!\n")
 
         
     # else:
@@ -239,111 +232,57 @@ def unfollowUser(userID):
 # needs work - part of submenu for viewing timeline
 def likeTweet(userID, tweetID):
     tracker = True
-    print("Liking a Tweet")
+    tweetToLike = input("Liking a Tweet")
     conn2 = sqlite3.connect("twitterlike.db")
     cursor1 = conn2.execute("SELECT * FROM TWEETS")
 
     for row1 in cursor1:
-        if row1[0] == tweetID and row1[1] != userID:
-            tracker = True
-        else:
-            tracker =False
-            break
-
-    if tracker == False:
+        if row1[0] == tweetToLike:
             conn4 = sqlite3.connect("twitterlike.db")
             cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
             result = cursor2.fetchone()
             likeId = result[0]
             conn4.execute("INSERT INTO LIKE (LIKEID, LIKEUSERID, TWEETID) \
-                                    VALUES (?, ?, ?)", (likeId, userID, tweetID))
+                                    VALUES (?, ?, ?)", (likeId, userID, tweetToLike))
             print("Tweet liked successfully!")
             conn4.commit()
             conn4.close()
-    if tracker == True:
-        print("you have already liked this")
+        else:
+            print(row1[2], row1[0], "Is not what is being looked for")
+    #if tracker == True:
+    #    print("you have already liked this")
     conn2.commit()
     conn2.close()
     tweetMenu(userID)
 
-
-
 # needs work
 def unlikeTweet(userID, tweetID):
-    tracker = False
-    print("Unliking a Tweet")
+    tracker = True
+    tweetToLike = input("Liking a Tweet")
     conn2 = sqlite3.connect("twitterlike.db")
     cursor1 = conn2.execute("SELECT * FROM TWEETS")
 
     for row1 in cursor1:
-        if row1[0] == tweetID and row1[1] == userID:
-            tracker = True
-            break
-        else:
-            tracker = False
-            
-
-    if tracker == True:
+        if tweetToLike == row1[0]:
             conn4 = sqlite3.connect("twitterlike.db")
             cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
             result = cursor2.fetchone()
             likeId = result[0]
-            conn4.execute('''UPDATE LIKE SET LIKEID=NULL, LIKEUSERID=NULL, TWEETID=NULL
-                          LIKEID = (?) AND LIKEUSERID = (?) AND TWEETID = (?)''', (likeId, userID, tweetID))
-            print("Tweet unliked successfully!")
+            conn4.execute("DELETE LIKE WHERE TWEETID=(?) ",(tweetToLike))
+            print("Tweet liked successfully!")
             conn4.commit()
             conn4.close()
-    if tracker == False:
-        print("you have already unliked this")
+        else:
+            print(row1, "Is not what is being looked for")
+    #if tracker == True:
+    #    print("you have already liked this")
     conn2.commit()
     conn2.close()
-    tweetMenu(userID)        
-
-
-
-
-
-
-
-
-
+    tweetMenu(userID)
 
 # needs work
 def addComment(userID, tweetID):
-    print("Posting a comment\n")
-    commentText = ""
-    while commentText == "":
-        commentText = input("Enter your tweet: ")
-        commentText = commentText.strip(" ")
-    commentposted = False
-    while commentposted == False:
-        commentChoice = int(input("Enter 1 if you want to post your tweet \nEnter 2 to discard tweet and go back to the menu: "))
-        if commentChoice == 1:
-            conn2 = sqlite3.connect("twitterlike.db")
-            query = conn2.cursor()
-            query.execute("SELECT TWEETID FROM TWEETS")
-            result = query.fetchall()
-            commentID = len(result) + 1
-            timeStamp = datetime.now()
-            conn2.execute("INSERT INTO COMMENT (COMMENTID, TWEETID, USERID, COMMENT, COMMENTTIME) \
-                                    VALUES (?, ?, ?, ?)", (commentID, tweetID, userID, commentText, timeStamp))
-            conn2.commit()
-            conn2.close()
-            tweetMenu(userID)
-            commentposted = True
-        elif commentChoice == 2:
-            tweetMenu(userID)
-        else:
-            print("\nInvalid choice. Please select a valid option.\n")
-            commentposted = False
-    #pass
-
-
-
-
-
-
-
+    pass
 
 # needs testing 
 def viewComments(userID, tweetID):
