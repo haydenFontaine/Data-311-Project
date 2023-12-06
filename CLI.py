@@ -47,91 +47,116 @@ def login():
         userID = result[0][0]
         passwordInput = input("Enter your password: ")
         if result[0][2] == passwordInput:
-            print("Successfully Logged In!")
+            print("\nSuccessfully Logged In!\n")
         else:
-            print("Incorrect Password")
+            print("\nIncorrect Password\n")
             loginMenu()
     else:
-        print("User not found.")
+        print("\nUser not found.\n")
         loginMenu()
     conn1.close()
     return userID
 
-# works, but will post empty tweets - the hashed if statement doesn't work
+# works and cycles back if wrong choice entered
 def postTweet(userID):
-    print("Posting a Tweet")
+    print("Posting a Tweet\n")
     tweetText = ""
     while tweetText == "":
         tweetText = input("Enter your tweet: ")
         tweetText = tweetText.strip(" ")
-    # if tweetText is not None:
-    tweetChoice = int(input("Enter 1 if you want to post your tweet \nEnter 2 if you want to go back to the menu: "))
-    if tweetChoice == 1:
-        conn2 = sqlite3.connect("twitterlike.db")
-        query = conn2.cursor()
-        query.execute("SELECT TWEETID FROM TWEETS")
-        result = query.fetchall()
-        tweetID = len(result) + 1
-        timeStamp = datetime.now()
-        conn2.execute("INSERT INTO TWEETS (TWEETID, USERID, TWEET, TWEETTIME) \
-                                VALUES (?, ?, ?, ?)", (tweetID, userID, tweetText, timeStamp))
-        conn2.commit()
-        conn2.close()
-        tweetMenu(userID)
-    elif tweetChoice == 2:
+    tweetposted = False
+    while tweetposted == False:
+        tweetChoice = int(input("Enter 1 if you want to post your tweet \nEnter 2 to discard tweet and go back to the menu: "))
+        if tweetChoice == 1:
+            conn2 = sqlite3.connect("twitterlike.db")
+            query = conn2.cursor()
+            query.execute("SELECT TWEETID FROM TWEETS")
+            result = query.fetchall()
+            tweetID = len(result) + 1
+            timeStamp = datetime.now()
+            conn2.execute("INSERT INTO TWEETS (TWEETID, USERID, TWEET, TWEETTIME) \
+                                    VALUES (?, ?, ?, ?)", (tweetID, userID, tweetText, timeStamp))
+            conn2.commit()
+            conn2.close()
+            tweetMenu(userID)
+            tweetposted = True
+        elif tweetChoice == 2:
+            tweetMenu(userID)
+        else:
+            print("\nInvalid choice. Please select a valid option.\n")
+            tweetposted = False
+
+
+# works, shows tweets of people the user follows
+def viewTimeline(userID):
+
+    conn2 = sqlite3.connect("twitterlike.db")
+    cursor1 = conn2.execute("SELECT * FROM TWEETS")
+
+    for row1 in cursor1:
+        print(row1[2], " Tweet ID:",row1[0])
+
+    print("Viewing Timeline\n")
+    conn3 = sqlite3.connect("twitterlike.db")
+    query = conn3.cursor()
+    query.execute('''SELECT TWEETS.tweetid, TWEETS.userid, TWEETS.tweet, TWEETS.tweettime, FOLLOWT.followeruserid, 
+                  FOLLOWT.followinguserid, LOGININFO.userid, LOGININFO.username FROM TWEETS inner JOIN FOLLOWT ON 
+                  TWEETS.userid = FOLLOWT.followinguserid inner JOIN LOGININFO ON TWEETS.userid = LOGININFO.userid 
+                  WHERE FOLLOWT.followeruserid = ? ORDER BY TWEETTIME''', (userID,))
+    tweetlist = query.fetchall()
+    listlength = len(tweetlist)
+    if listlength >= 1:
+        for i in range(0, listlength):
+            print(f"\nTweet ID: ", tweetlist[i][0], " Tweet: ", tweetlist[i][2], "\nPosted By: ", tweetlist[i][6], " at ", tweetlist[i][3], "\n")
+    else:
+        print ("There are no tweets in your timeline. Add followers to fill your timeline!\n")
+    tweetID = int(input("Enter Tweet ID for options. Enter 0 to go back to the menu: "))
+    if tweetID == 0:
         tweetMenu(userID)
     else:
-        print("Invalid choice. Please select a valid option.")
+        try:
+            query2 = conn3.cursor()
+            query2.execute("SELECT TWEETID FROM TWEETS WHERE TWEETID = ?", (tweetID,))
+            tweet = query2.fetchall()
+            if tweet[0][0] == tweetID:
+                commentlikeMenu(userID, tweetID)
+            else: 
+                print("Invalid Tweet ID. Try again!\n")
+        except:
+            print("Invalid Tweet ID. Try again!!!\n")
+
+        
     # else:
-    #     print ("Tweet can't be empty.")
+    #     for j in range(0, listlength):
+    #         if tweetlist[j][3] == tweetID:
+    #             tweetfound = True
+    #         else:
+    #             tweetfound = False
+    # if tweetfound == True:
+    #     commentlikeMenu(userID, tweetID)
+    # else:
+        
 
-
-# needs work, shows empty list right now.
-# we need to make sure we are using SQL queries to make the list, not using loops to filter. TA was very specific about that
-# I removed the like and comment options from the tweet menu. I think we should make them options under this instead so
-# that the user will know the tweet ID 
-def viewTimeline(userID):
-    followed_users = []
-    print("Viewing Timeline")
-    conn3 = sqlite3.connect("twitterlike.db")
-    cursor1 = conn3.execute("SELECT FOLLOWINGUSERID FROM FOLLOWT WHERE FOLLOWERUSERID = ?", (userID,))
-    for followId in cursor1:
-        print(followId)
-        followed_users.append(followId[0])
-    print(followed_users)
-    # I think we need a JOIN SQL query here to make a table that has usernames (of all users followed), tweets and timestamps that we can then display as a list
-    conn2 = sqlite3.connect("twitterlike.db")
-    cursor2 = conn2.execute("SELECT * FROM TWEETS where USERID IN ({}) ORDER BY TWEETTIME DESC".format(','.join(map(str, followed_users))))
-    for tweet in cursor2:
-        tweet_id, user_id, tweet_content, creation_timestamp = tweet
-        print("Tweet ID: {}, User ID: {}, Tweet Content: {}, Created At: {}".format(tweet_id, user_id, tweet_content, creation_timestamp))
-    conn3.close()
-    conn2.close()
-    menuReturn = input('''Enter 1 if you want to return to the tweet menu \nEnter 2 to exit.''')
-    if menuReturn == 1:
-        tweetMenu()
-    elif menuReturn == 2:
-        print("Goodbye!")
-        tweetMenu(userID)
-
-# works, but output could look nicer
+# works
 def tweetHistory(userID):
-    print(f"Your Tweet History:")
+    print(f"Your Tweet History:\n")
     conn3 = sqlite3.connect("twitterlike.db")
     query = conn3.cursor()
     query.execute("SELECT TWEET,TWEETTIME FROM TWEETS WHERE USERID = ?", (userID,))
     tweetlist = query.fetchall()
-    print(tweetlist)
-    for tweet in tweetlist:
-        print(f"Tweet: ", tweet[0], "Posted: ", tweet[1])
+    listlength = len(tweetlist)
+    if listlength >= 1:
+        for tweet in tweetlist:
+            print(f"Tweet: ", tweet[0], "\nPosted: ", tweet[1], "\n")
+    else:
+        print("You haven't posted any tweets yet!\n")
     conn3.close()
-    menuReturn = input('''Enter 1 if you want to return to the tweet menu \n 
-    Enter 2 to exit.''')
+    menuReturn = int(input("Enter 1 if you want to return to the Main Menu \nEnter 2 to exit."))
     if menuReturn == 1:
-        tweetMenu()
+        tweetMenu(userID)
     elif menuReturn == 2:
-        print("Goodbye!")
-        exit()
+        print("Goodbye!\n")
+        loginMenu()
 
 
 # works, needs error message if user is already following. SQL table is set up to throw error, just need python code to deal with it
@@ -139,15 +164,18 @@ def followUser(userID):
     print("Follow a User")
     followUserName = input("Enter the username you are looking for: ")
     conn1 = sqlite3.connect("twitterlike.db")
-    query = conn1.cursor()
-    query.execute("SELECT USERID, USERNAME FROM LOGININFO WHERE USERNAME = (?)", (followUserName,))
-    fresult = query.fetchall()
+    query1 = conn1.cursor()
+    query1.execute("SELECT USERID, USERNAME FROM LOGININFO WHERE USERNAME = (?)", (followUserName,))
+    fresult = query1.fetchall()
     if fresult [0][1] == followUserName:
         followChoice = int(input(f"Enter 1 if you want to follow {followUserName} \nEnter 2 if you want to go back to the menu: "))
         if followChoice == 1:
-            cursor2 = conn1.execute("SELECT COUNT(*) FROM FOLLOWT")
-            result = cursor2.fetchone()
-            followID = result[0] + 1
+            conn2 = sqlite3.connect("twitterlike.db")
+            query = conn2.cursor()
+            query.execute("SELECT * FROM FOLLOWT")
+            result = query.fetchall()
+            print(result)
+            followID = len(result) + 1
             followUserID = fresult [0][0]
             conn1.execute("INSERT INTO FOLLOWT (FOLLOWID, FOLLOWERUSERID, FOLLOWINGUSERID) \
                                     VALUES (?, ?, ?)", (followID, userID, followUserID))
@@ -198,35 +226,127 @@ def unfollowUser(userID):
 
     
 
-# needs work - how are the users supposed to know the tweet number?
-# I removed the like and comment options from the tweet menu. I think we should make them options under this instead so
-# that the user will know the tweet ID 
-def likeTweet(tweetID):
+
+
+
+
+
+
+
+
+
+
+# needs work - part of submenu for viewing timeline
+def likeTweet(userID, tweetID):
+    tracker = True
     print("Liking a Tweet")
-    tweetToLike = int(input("What tweet do you want to like (enter in number): "))
     conn2 = sqlite3.connect("twitterlike.db")
     cursor1 = conn2.execute("SELECT * FROM TWEETS")
 
     for row1 in cursor1:
-        print(row1[0])
-        print(tweetToLike)
-        if row1[0] == tweetToLike:
-            conn4 = sqlite3.connect("Table4")
+        if row1[0] == tweetID and row1[1] != userID:
+            tracker = True
+        else:
+            tracker =False
+            break
+
+    if tracker == False:
+            conn4 = sqlite3.connect("twitterlike.db")
             cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
             result = cursor2.fetchone()
             likeId = result[0]
             conn4.execute("INSERT INTO LIKE (LIKEID, LIKEUSERID, TWEETID) \
-                                    VALUES (?, ?, ?)", (likeId, userId, tweetToLike))
+                                    VALUES (?, ?, ?)", (likeId, userID, tweetID))
             print("Tweet liked successfully!")
             conn4.commit()
             conn4.close()
+    if tracker == True:
+        print("you have already liked this")
     conn2.commit()
     conn2.close()
+    tweetMenu(userID)
 
-# needs work- how does the user know the tweet number? 
-# I removed the like and comment options from the tweet menu. I think we should make them options under this instead so
-# that the user will know the tweet ID 
-def viewComments(tweetID):
+
+
+# needs work
+def unlikeTweet(userID, tweetID):
+    tracker = False
+    print("Unliking a Tweet")
+    conn2 = sqlite3.connect("twitterlike.db")
+    cursor1 = conn2.execute("SELECT * FROM TWEETS")
+
+    for row1 in cursor1:
+        if row1[0] == tweetID and row1[1] == userID:
+            tracker = True
+            break
+        else:
+            tracker = False
+            
+
+    if tracker == True:
+            conn4 = sqlite3.connect("twitterlike.db")
+            cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
+            result = cursor2.fetchone()
+            likeId = result[0]
+            conn4.execute('''UPDATE LIKE SET LIKEID=NULL, LIKEUSERID=NULL, TWEETID=NULL
+                          LIKEID = (?) AND LIKEUSERID = (?) AND TWEETID = (?)''', (likeId, userID, tweetID))
+            print("Tweet unliked successfully!")
+            conn4.commit()
+            conn4.close()
+    if tracker == False:
+        print("you have already unliked this")
+    conn2.commit()
+    conn2.close()
+    tweetMenu(userID)        
+
+
+
+
+
+
+
+
+
+
+# needs work
+def addComment(userID, tweetID):
+    print("Posting a comment\n")
+    commentText = ""
+    while commentText == "":
+        commentText = input("Enter your tweet: ")
+        commentText = commentText.strip(" ")
+    commentposted = False
+    while commentposted == False:
+        commentChoice = int(input("Enter 1 if you want to post your tweet \nEnter 2 to discard tweet and go back to the menu: "))
+        if commentChoice == 1:
+            conn2 = sqlite3.connect("twitterlike.db")
+            query = conn2.cursor()
+            query.execute("SELECT TWEETID FROM TWEETS")
+            result = query.fetchall()
+            commentID = len(result) + 1
+            timeStamp = datetime.now()
+            conn2.execute("INSERT INTO COMMENT (COMMENTID, TWEETID, USERID, COMMENT, COMMENTTIME) \
+                                    VALUES (?, ?, ?, ?)", (commentID, tweetID, userID, commentText, timeStamp))
+            conn2.commit()
+            conn2.close()
+            tweetMenu(userID)
+            commentposted = True
+        elif commentChoice == 2:
+            tweetMenu(userID)
+        else:
+            print("\nInvalid choice. Please select a valid option.\n")
+            commentposted = False
+    #pass
+
+
+
+
+
+
+
+
+# needs testing 
+def viewComments(userID, tweetID):
     print("Viewing Tweet Comments")
     commentsOnTweet = int(input("What tweet do you want to see their comments (enter in number): "))
     conn5 = sqlite3.connect("twitterlike.db")
@@ -242,8 +362,10 @@ def viewComments(tweetID):
     conn5.close()
 
 
+
+
 def loginMenu():
-    loginChoice = int(input("Enter 1 if you are making a new twitter account \nEnter 2 if you are logging in"))
+    loginChoice = int(input("Enter 1 if you are making a new twitter account \nEnter 2 if you are logging in \n"))
     if loginChoice == 1:
         user = new_user()
         if user is not None:
@@ -255,13 +377,13 @@ def loginMenu():
         if user is not None:
             tweetMenu(user)
     else:
-        print("Invalid choice. Please select a valid option.")
+        print("Invalid choice. Please select a valid option.\n")
 
 
 
 def tweetMenu(userID):
 
-    print("Twitter-Like CLI Application")
+    print("Main Menu\n")
     print("1. Post a Tweet")
     print("2. View Timeline")
     print("3. View Tweet History")
@@ -274,29 +396,50 @@ def tweetMenu(userID):
         # Works
     if menuChoice == 1:
         postTweet(userID)
-
-            # Will have to adjust this code, found it on the internet because I was having difficulty figuring it out
     elif menuChoice == 2:
         viewTimeline(userID)
-            
-    # Works, will need an option for users to unlike a tweet (similar process to unfollowing a user)
     elif menuChoice == 3:
         tweetHistory(userID)
-
-    # This function I believe works, but will have to include giving the user the option to add comments
     elif menuChoice == 4:
         followUser(userID)
-
-    # Works
     elif menuChoice == 5:
         unfollowUser(userID)
-
     elif menuChoice == 6:
         print("Goodbye!")
         loginMenu()
-
     else:
         print("Invalid choice. Please select a valid option.")
+
+        
+def commentlikeMenu(userID, tweetID):
+    conn3 = sqlite3.connect("twitterlike.db")
+    query = conn3.cursor()
+    query.execute("SELECT TWEET FROM TWEETS WHERE TWEETID = ?", (tweetID,))
+    tweet = query.fetchone()
+
+    print("\nTweet: ", tweet[0], "\n")
+    print("1. Like Tweet")
+    print("2. Unlike Tweet")
+    print("3. Add Comment")
+    print("4. View Comments")
+    print("5. Return to Menu")
+    print("6. Logout")
+
+    menuChoice = int(input("Enter your choice (1 up to 6): "))
+    if menuChoice == 1:
+        likeTweet(userID, tweetID)
+    elif menuChoice == 2:
+        unlikeTweet(userID, tweetID)
+    elif menuChoice == 3:
+        addComment(userID, tweetID)
+    elif menuChoice == 4:
+        viewComments(userID, tweetID)
+    elif menuChoice == 5:
+        tweetMenu(userID)
+    elif menuChoice == 6:
+        print("Goodbye!")
+        loginMenu
+            
 
 
 loginMenu()
