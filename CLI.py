@@ -232,52 +232,69 @@ def unfollowUser(userID):
 # needs work - part of submenu for viewing timeline
 def likeTweet(userID, tweetID):
     tracker = True
-    tweetToLike = input("Liking a Tweet")
+    counter = 0
     conn2 = sqlite3.connect("twitterlike.db")
     cursor1 = conn2.execute("SELECT * FROM TWEETS")
 
     for row1 in cursor1:
-        if row1[0] == tweetToLike:
+        if row1[0] == tweetID:
+            counter = counter +1
+            tracker = False
+    if tracker==False and counter <= 2:
             conn4 = sqlite3.connect("twitterlike.db")
             cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
             result = cursor2.fetchone()
             likeId = result[0]
             conn4.execute("INSERT INTO LIKE (LIKEID, LIKEUSERID, TWEETID) \
-                                    VALUES (?, ?, ?)", (likeId, userID, tweetToLike))
-            print("Tweet liked successfully!")
+                                    VALUES (?, ?, ?)", (likeId, userID, tweetID))
+            print("Tweet liked successfully!!!!!!!!!!!")
             conn4.commit()
             conn4.close()
-        else:
-            print(row1[2], row1[0], "Is not what is being looked for")
+    else:
+            print( "tweet already liked")
     #if tracker == True:
     #    print("you have already liked this")
     conn2.commit()
     conn2.close()
+
+    conn99 = sqlite3.connect("twitterlike.db")
+    cursor1 = conn99.execute("SELECT * FROM LIKE")
+    for row99 in cursor1:
+        print(row99)
+
     tweetMenu(userID)
 
 # needs work
 def unlikeTweet(userID, tweetID):
     tracker = True
-    tweetToLike = input("Liking a Tweet")
     conn2 = sqlite3.connect("twitterlike.db")
     cursor1 = conn2.execute("SELECT * FROM TWEETS")
 
     for row1 in cursor1:
-        if tweetToLike == row1[0]:
+        if row1[0] == tweetID:
             conn4 = sqlite3.connect("twitterlike.db")
             cursor2 = conn4.execute("SELECT COUNT(*) FROM LIKE")
             result = cursor2.fetchone()
             likeId = result[0]
-            conn4.execute("DELETE LIKE WHERE TWEETID=(?) ",(tweetToLike))
-            print("Tweet liked successfully!")
+            print("Tweet liked successfully!!!!!!!!!!!")
+            conn4.execute("DELETE FROM LIKE WHERE LIKEUSERID = ? AND TWEETID = ?", (userID, tweetID))
+
+            #conn4.execute('''UPDATE LIKE SET LIKEID=NULL, LIKEUSERID=NULL, TWEETID=NULL WHERE 
+            #              LIKEID = (?) AND LIKEUSERID = (?) AND TWEETID = (?)''', (likeId, userID,tweetID))
             conn4.commit()
             conn4.close()
-        else:
-            print(row1, "Is not what is being looked for")
     #if tracker == True:
     #    print("you have already liked this")
+
+    
     conn2.commit()
     conn2.close()
+
+    conn99 = sqlite3.connect("twitterlike.db")
+    cursor1 = conn99.execute("SELECT * FROM LIKE")
+    for row99 in cursor1:
+        print(row99)
+
     tweetMenu(userID)
 
 # needs work
