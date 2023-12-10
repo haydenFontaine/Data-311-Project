@@ -3,9 +3,12 @@ import sqlite3
 from datetime import datetime  # Know this package from my ECON 411 class
 
 """After troubleshooting, work I believe that has to be done:
-1) Add remove comments function
-2) Make sure that all ids are properly incremented, and keeping it consistent across all ids (ex: userID may start at 1, should be same for likeID for consistency
-3) More troubleshooting and error handling. I believe I got most of them (main concern is with unfollow user, see comments above function)."""
+1) Add remove comments function - I don't think this is necessary (Kristen)
+2) Make sure that all ids are properly incremented, and keeping it consistent across all ids (ex: userID may start at 1, 
+should be same for likeID for consistency - I checked them to make sure they are all counting the same way, 
+so they should be consistent now (Kristen)
+3) More troubleshooting and error handling. I believe I got most of them (main concern is with unfollow user, 
+see comments above function). - Fixed (Kristen)"""
 
 # Works & successfully checks for duplicate usernames
 # potential add-ons: currently accepts blank entries, we should fix that (fixed blank entries: Hayden)
@@ -47,12 +50,11 @@ def new_user():
         else:
             print("Username already exists or you have entered no username. Try again!")
             success = False
-    userID = 0
+
     query2 = conn.cursor()
-    userIDs = query2.execute("SELECT USERID FROM LOGININFO")
-    for id in userIDs:
-        userID += 1
-    userID += 1
+    query2.execute("SELECT USERID FROM LOGININFO")
+    userIDs = query2.fetchall()
+    userID = len(userIDs) +1
     query3 = conn.cursor()
     query3.execute("INSERT INTO LOGININFO \
                     VALUES (?, ?, ?, ?, ?, ?, ?)", (userID, usernameInput, passwordInput, fullNameInput, emailInput, profileImageInput, registrationDate))
@@ -118,7 +120,7 @@ def postTweet(userID):
 
 # works, shows tweets of people the user follows
 def viewTimeline(userID):
-    print("Viewing Timeline\n")
+    print("\nViewing Timeline\n")
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
     query1.execute('''SELECT TWEETS.tweetid, TWEETS.userid, TWEETS.tweet, TWEETS.tweettime, FOLLOWT.followeruserid, 
@@ -129,7 +131,7 @@ def viewTimeline(userID):
     listLength = len(tweetList)
     if listLength >= 1:
         for i in range(0, listLength):
-            print(f"\nTweet ID: ", tweetList[i][0], " Tweet: ", tweetList[i][2], "\nPosted By: ", tweetList[i][6],
+            print(f"\nTweet ID: ", tweetList[i][0], " Tweet: ", tweetList[i][2], "\nPosted By: ", tweetList[i][7],
                   " at ", tweetList[i][3], "\n")
     else:
         print("There are no tweets in your timeline. Add followers to fill your timeline!\n")
@@ -170,7 +172,8 @@ def tweetHistory(userID):
         loginMenu()
 
 
-# works, needs error message if user is already following. SQL table is set up to throw error, just need python code to deal with it (fixed: Hayden)
+# works, needs error message if user is already following. SQL table is set up to throw error, just need python code to deal with 
+# it (fixed: Hayden)
 def followUser(userID):
     print("Follow a User")
     followUserName = input("Enter the username you are looking for: ")
@@ -204,8 +207,10 @@ def followUser(userID):
         tweetMenu(userID)
     conn.close()
 
-# I believe it works, accounting for if username is not found or if user is not following the username they were looking for. Will have to double checking if the ID counts are correct,
-# also occasionally there is an operationalerror that occurs where it says database is locked. Not sure how we would fix that. (Hayden)
+# I believe it works, accounting for if username is not found or if user is not following the username they were looking for. 
+# Will have to double checking if the ID counts are correct,
+# also occasionally there is an operationalerror that occurs where it says database is locked. Not sure how we would fix that. 
+# (Hayden). I think it was becuase the conn.commit() line was inside the if function. I moved it outside (Kristen)
 def unfollowUser(userID):
     print("Unfollow a User")
     unfollowUsername = input("Enter the username you are looking for: ")
@@ -229,15 +234,16 @@ def unfollowUser(userID):
                 query3 = conn.cursor()
                 query3.execute('''UPDATE FOLLOWT SET FOLLOWERUSERID=NULL, FOLLOWINGUSERID=NULL WHERE 
                           FOLLOWERUSERID = (?) AND FOLLOWINGUSERID = (?)''', (userID, unfollowUserID))
-                print(f"Successfully unfollowed {unfollowUsername}!")
-                conn.commit()
+                print(f"Successfully unfollowed {unfollowUsername}!")  
             elif unfollowChoice == 2:
                 tweetMenu(userID)
         else:
             print("You are not following that user. Going back to main menu.")
             tweetMenu(userID)
+        conn.commit()
 
 # Troubleshooted it, and I believe it works now -Hayden
+# tested and found no erros (Kristen)
 def likeTweet(userID, tweetID):
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
@@ -256,7 +262,7 @@ def likeTweet(userID, tweetID):
             query3 = conn.cursor()
             query3.execute("SELECT COUNT(*) FROM LIKE")
             tResult = query3.fetchone()
-            likeID = tResult[0]
+            likeID = tResult[0] +1
 
             query4 = conn.cursor()
             query4.execute("INSERT INTO LIKE (LIKEID, LIKEUSERID, TWEETID) VALUES (?,?,?)",
@@ -267,10 +273,11 @@ def likeTweet(userID, tweetID):
             print("Tweet not found.")
 
     conn.close()
-    tweetMenu(userID)
+    viewTimeline(userID)
 
 
 # Should work now -Hayden
+# fixed delete to change to NULL, otherwise it throws error when next user tries to like a tweet
 def unlikeTweet(userID, tweetID):
     conn = sqlite3.connect("twitterlike.db")
 
@@ -288,7 +295,7 @@ def unlikeTweet(userID, tweetID):
 
         if existing_tweet:
             query3 = conn.cursor()
-            query3.execute("DELETE FROM LIKE WHERE LIKEUSERID = ? AND TWEETID = ?", (userID, tweetID))
+            query3.execute("UPDATE LIKE SET LIKEUSERID=NULL, TWEETID=NULL WHERE LIKEUSERID = ? AND TWEETID = ?", (userID, tweetID))
             print("Tweet unliked successfully!")
 
             query4 = conn.cursor()
@@ -324,26 +331,31 @@ def addComment(userID, tweetID):
                                        VALUES (?, ?, ?, ?,?)", (commentID, userID, tweetID, commentOnTweet, commentTimeStamp))
         conn.commit()
         conn.close()
-        tweetMenu(userID)
+        viewTimeline(userID)
     elif commentChoice == 2:
         tweetMenu(userID)
     else:
         print("\nInvalid choice. Please select a valid option.\n")
+        tweetMenu(userID)
 
-# needs testing
+# works, cleaned up display (Kristen)
 def viewComments(userID, tweetID):
-    print(f"Viewing Tweet Comments from Tweet ID {tweetID}")
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
-    query1.execute("SELECT * FROM COMMENT WHERE TWEETID = ?", (tweetID,))
-    existing_comments = query1.fetchall()
+    query1.execute('''SELECT TWEETS.TWEETID, TWEETS.TWEET, TWEETS.USERID, LOGININFO.USERID, LOGININFO.USERNAME FROM TWEETS 
+                   JOIN LOGININFO ON TWEETS.USERID = LOGININFO.USERID where TWEETS.TWEETID = ?''', (tweetID,))
+    tweet = query1.fetchall()
+    print(tweet)
+    print(f"Viewing Tweet Comments for {tweet[0][1]}\n")
+    query2 = conn.cursor()
+    query2.execute('''SELECT COMMENT.COMMENT, COMMENT.COMMENTUSERID, COMMENT.COMMENTTIME, LOGININFO.USERID, LOGININFO.USERNAME 
+                   FROM COMMENT JOIN LOGININFO ON COMMENT.COMMENTUSERID = LOGININFO.USERID WHERE TWEETID = ?''', (tweetID,))
+    existing_comments = query2.fetchall()
     if not existing_comments:
         print("No Comments")
     else:
         for comment_info in existing_comments:
-            print(f"Comment ID: {comment_info[0]}, User ID: {comment_info[1]}, Comment: {comment_info[3]}, Comment Time: {comment_info[4]}")
-
-    conn.commit()
+            print(f"Comment: {comment_info[0]} by {comment_info[4]} at {comment_info[2]}")
     conn.close()
 
 
@@ -364,19 +376,20 @@ def loginMenu():
             loginMenu()
     except ValueError as err:
         print("Can only enter a whole number/real value. Restart application and try again.\n")
+        exit()
 
 
 def tweetMenu(userID):
     selection = True
     while selection:
-        print("Main Menu\n")
+        print("\nMain Menu\n")
         print("1. Post a Tweet")
         print("2. View Timeline")
         print("3. View Tweet History")
         print("4. Follow a User")
         print("5. Unfollow a User")
         print("6. Logout")
-        print("7. Close Twitter Application")
+        print("7. Exit Application")
 
         menuChoice = int(input("Enter your choice (1 up to 7): "))
 
@@ -396,9 +409,10 @@ def tweetMenu(userID):
             loginMenu()
         elif menuChoice == 7:
             print("Goodbye!")
-            break
+            exit()
         else:
             print("Invalid choice. Please select a valid option.")
+            tweetMenu()
 
 
 def commentlikeMenu(userID, tweetID):
@@ -429,7 +443,9 @@ def commentlikeMenu(userID, tweetID):
     elif menuChoice == 6:
         print("Logging out...")
         loginMenu()
-
+    else:
+        print("Invalid choice. Please select a valid option.")
+        commentlikeMenu(userID,tweetID)
 
 loginMenu()
 

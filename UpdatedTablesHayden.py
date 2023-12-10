@@ -15,7 +15,7 @@ conn.execute('''
 
 conn.execute('''
      CREATE TABLE TWEETS
-     (TWEETID   INT PRIMARY KEY UNIQUE,
+     (TWEETID INT PRIMARY KEY UNIQUE,
       USERID    INT,
       TWEET TEXT,
       TWEETTIME     DATE); 
