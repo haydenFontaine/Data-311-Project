@@ -309,6 +309,26 @@ def unlikeTweet(userID, tweetID):
     conn.close()
     tweetMenu(userID)
 
+#works (Kristen)
+def viewLikes(userID, tweetID):
+    conn = sqlite3.connect("twitterlike.db")
+    query1 = conn.cursor()
+    query1.execute('''SELECT TWEETS.TWEETID, TWEETS.TWEET, TWEETS.USERID, LOGININFO.USERID, LOGININFO.USERNAME FROM TWEETS 
+                   JOIN LOGININFO ON TWEETS.USERID = LOGININFO.USERID WHERE TWEETS.TWEETID = ?''', (tweetID,))
+    tweet = query1.fetchall()
+    print(f"Tweet: {tweet[0][1]} by {tweet[0][4]}")
+    query2 = conn.cursor()
+    query2.execute("SELECT LIKEID FROM LIKE WHERE TWEETID = ?", (tweetID,))
+    likes = query2.fetchall()
+    like_count = len(likes)
+    if like_count == 0:
+        print("No Likes")
+    else:
+        print(f"Likes: {like_count}")
+    conn.close()
+    commentlikeMenu(userID, tweetID)
+
+
 # Works now -Hayden
 def addComment(userID, tweetID):
     conn = sqlite3.connect("twitterlike.db")
@@ -345,8 +365,7 @@ def viewComments(userID, tweetID):
     query1.execute('''SELECT TWEETS.TWEETID, TWEETS.TWEET, TWEETS.USERID, LOGININFO.USERID, LOGININFO.USERNAME FROM TWEETS 
                    JOIN LOGININFO ON TWEETS.USERID = LOGININFO.USERID where TWEETS.TWEETID = ?''', (tweetID,))
     tweet = query1.fetchall()
-    print(tweet)
-    print(f"Viewing Tweet Comments for {tweet[0][1]}\n")
+    print(f"Viewing Tweet Comments for {tweet[0][1]}\n by {tweet[0][4]}")
     query2 = conn.cursor()
     query2.execute('''SELECT COMMENT.COMMENT, COMMENT.COMMENTUSERID, COMMENT.COMMENTTIME, LOGININFO.USERID, LOGININFO.USERNAME 
                    FROM COMMENT JOIN LOGININFO ON COMMENT.COMMENTUSERID = LOGININFO.USERID WHERE TWEETID = ?''', (tweetID,))
@@ -357,11 +376,12 @@ def viewComments(userID, tweetID):
         for comment_info in existing_comments:
             print(f"Comment: {comment_info[0]} by {comment_info[4]} at {comment_info[2]}")
     conn.close()
+    commentlikeMenu(userID, tweetID)
 
 
 def loginMenu():
     try:
-        loginChoice = int(input("Enter 1 if you are making a new twitter account \nEnter 2 if you are logging in \n"))
+        loginChoice = int(input("\nEnter 1 if you are making a new twitter account \nEnter 2 if you are logging in \n"))
         if loginChoice == 1:
             user = new_user()
             if user is not None:
@@ -391,7 +411,7 @@ def tweetMenu(userID):
         print("6. Logout")
         print("7. Exit Application")
 
-        menuChoice = int(input("Enter your choice (1 up to 7): "))
+        menuChoice = int(input("\nEnter your choice (1 up to 7): "))
 
         # Works
         if menuChoice == 1:
@@ -411,7 +431,7 @@ def tweetMenu(userID):
             print("Goodbye!")
             exit()
         else:
-            print("Invalid choice. Please select a valid option.")
+            print("\nInvalid choice. Please select a valid option.")
             tweetMenu()
 
 
@@ -424,27 +444,30 @@ def commentlikeMenu(userID, tweetID):
     print("\nTweet: ", tweet[0], "\n")
     print("1. Like Tweet")
     print("2. Unlike Tweet")
-    print("3. Add Comment")
-    print("4. View Comments")
-    print("5. Return to Menu")
-    print("6. Logout")
+    print("3. View Likes")
+    print("4. Add Comment")
+    print("5. View Comments")
+    print("6. Return to Menu")
+    print("7. Logout")
 
-    menuChoice = int(input("Enter your choice (1 up to 6): "))
+    menuChoice = int(input("\nEnter your choice (1 up to 6): "))
     if menuChoice == 1:
         likeTweet(userID, tweetID)
     elif menuChoice == 2:
         unlikeTweet(userID, tweetID)
     elif menuChoice == 3:
-        addComment(userID, tweetID)
+        viewLikes(userID, tweetID)
     elif menuChoice == 4:
-        viewComments(userID, tweetID)
+        addComment(userID, tweetID)
     elif menuChoice == 5:
-        tweetMenu(userID)
+        viewComments(userID, tweetID)
     elif menuChoice == 6:
-        print("Logging out...")
+        tweetMenu(userID)
+    elif menuChoice == 7:
+        print("\nLogging out...")
         loginMenu()
     else:
-        print("Invalid choice. Please select a valid option.")
+        print("\nInvalid choice. Please select a valid option.")
         commentlikeMenu(userID,tweetID)
 
 loginMenu()
