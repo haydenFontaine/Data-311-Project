@@ -8,6 +8,7 @@ Arguments: None
 Purpose: Registers a new user and stores their information into the database. Connects to the database, and requires for users to submit a unique and non-blank username, password,
 full name, and email. Profile picture is optional due to most social media accounts having a default profile image. The time of registration is recorded and stored, along with a 
 uniquely generated userID. 
+Return: Returns the userID onced login is successful as the tweetMenu and likecommentMenu requires it.
 """
 def new_user():
     conn = sqlite3.connect("twitterlike.db")
@@ -63,8 +64,10 @@ def new_user():
 """
 Function: login
 Arguments: None
-Purpose: To login a user to their account, requiring the username and password of their account. Selects the userID, username, and password from the database and verifies that it belongs
-to an existing account in the database.
+Purpose: To login a user to their account, requiring the username and password of their account. 
+Selects the userID, username, and password from the database and verifies that it belongs
+to an existing account in the database and that the combination is correct. 
+Return: Returns the userID onced login is successful as the tweetMenu and likecommentMenu require it.
 """
 def login():
     conn = sqlite3.connect("twitterlike.db")
@@ -81,7 +84,7 @@ def login():
             print("\nIncorrect Password\n")
             loginMenu()
     else:
-        print("\nUser not found.\n")
+        print("\nUser not found.\n") 
         loginMenu()
     conn.close()
     return userID
@@ -89,9 +92,11 @@ def login():
 
 """
 Function: postTweet
-Arguments: userID (the unique ID associated with each account in the database)
-Purpose: Allows the user to enter a tweet they would like to post, verify if they want to do so, and stores the tweet into the database. The tweet in the database contains the unique ID
-with each tweet, the unique user ID, the text of the tweet that is being posted, and the time on when the tweet was posted.
+Arguments: userID (the unique ID associated with each account in the database) 
+passed the registration/login process
+Purpose: Allows the user to enter a tweet they would like to post, verify if they want to do so, and stores the tweet into the 
+database. The tweet in the database contains the unique IDwith each tweet, the unique user ID, the text of the tweet that is 
+being posted, and the time on when the tweet was posted.
 """
 def postTweet(userID):
     print("Posting a Tweet\n")
@@ -127,14 +132,17 @@ def postTweet(userID):
 """
 Function: viewTimeline
 Arguments: userID (the unique ID associated with each account in the database)
-Purpose: Allows the user to view their twitter timeline, consisting of the tweets of the accounts that the user follows. The unique tweet ID is shown, along with the text of the tweet,
-who it was posted by, and the time of the tweet being posted. This was completed by connecting to the database, and creating a comprehensive table using a double join, organizing tweets
+Purpose: Allows the user to view their twitter timeline, consisting of the tweets of the accounts that the user follows. The unique
+tweet ID is shown, along with the text of the tweet, who it was posted by, and the time of the tweet being posted. This was 
+completed by connecting to the database, and creating a comprehensive table using a double join, organizing tweets
 by the time of posting. The user can enter in the unique tweet ID to open the comment/like menu if it exists.
 """
 def viewTimeline(userID):
     print("\nViewing Timeline\n")
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
+    # this is a double join query that creates a comprehensive table of folowing relationships, tweets and the username of those
+    # involved allowing for a more user friendly display of the information in the program.
     query1.execute('''SELECT TWEETS.tweetid, TWEETS.userid, TWEETS.tweet, TWEETS.tweettime, FOLLOWT.followeruserid, 
                   FOLLOWT.followinguserid, LOGININFO.userid, LOGININFO.username FROM TWEETS inner JOIN FOLLOWT ON 
                   TWEETS.userid = FOLLOWT.followinguserid inner JOIN LOGININFO ON TWEETS.userid = LOGININFO.userid 
@@ -147,6 +155,9 @@ def viewTimeline(userID):
                   " at ", tweetList[i][3], "\n")
     else:
         print("There are no tweets in your timeline. Add followers to fill your timeline!\n")
+    
+    # Optional entry of tweetID to launch the like / comment menu. By placing the option here the user can reference the list of 
+    # tweets and doesn't need to remember the tweetID
     tweetID = int(input("Enter Tweet ID for options. Enter 0 to go back to the menu: "))
     if tweetID == 0:
         tweetMenu(userID)
@@ -165,7 +176,8 @@ def viewTimeline(userID):
 """
 Function: tweetHistory
 Arguments: userID (the unique ID associated with each account in the database)
-Purpose: Allows the user to view the tweets they have posted, and the date of posting if they have any. Gives the user the option to return to the main menu or to logout.
+Purpose: Allows the user to view the tweets they have posted, and the date of posting if they have any. Gives the user the option 
+to return to the main menu or to logout.
 """
 def tweetHistory(userID):
     print(f"Your Tweet History:\n")
@@ -202,6 +214,7 @@ def followUser(userID):
     query1 = conn.cursor()
     query1.execute("SELECT USERID, USERNAME FROM LOGININFO WHERE USERNAME = (?)", (followUserName,))
     fResult = query1.fetchall()
+    # checks that username exists and relationship is not duplicated
     try:
         if fResult[0][1] == followUserName:
             followChoice = int(
@@ -220,7 +233,7 @@ def followUser(userID):
                     conn.commit()
                 elif followChoice == 2:
                     tweetMenu(userID)
-            except sqlite3.IntegrityError as alreadyFollowingUser:
+            except sqlite3.IntegrityError as alreadyFollowingUser: #catches the error created by the unique constraint in the table
                 print("You are already following that user. Going back to main menu.")
                 tweetMenu(userID)
     except IndexError as noExistingUser:
@@ -256,6 +269,7 @@ def unfollowUser(userID):
             if unfollowChoice == 1:
                 unfollowUserID = fResult[0][0]
                 query3 = conn.cursor()
+                # uses NULL to replace entries instead of deleting so that the FOLLOWID doesn't repeat for future entries
                 query3.execute('''UPDATE FOLLOWT SET FOLLOWERUSERID=NULL, FOLLOWINGUSERID=NULL WHERE 
                           FOLLOWERUSERID = (?) AND FOLLOWINGUSERID = (?)''', (userID, unfollowUserID))
                 print(f"Successfully unfollowed {unfollowUsername}!")
@@ -327,6 +341,7 @@ def unlikeTweet(userID, tweetID):
 
         if existing_tweet:
             query3 = conn.cursor()
+            # uses NULL to replace entries instead of deleting so that the LIKEID doesn't repeat for future entries
             query3.execute("UPDATE LIKE SET LIKEUSERID=NULL, TWEETID=NULL WHERE LIKEUSERID = ? AND TWEETID = ?", (userID, tweetID))
             print("Tweet unliked successfully!")
 
@@ -350,6 +365,7 @@ menu.
 def viewLikes(userID, tweetID):
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
+    # join used to pull usernames associated with tweets to give a more user friendly display
     query1.execute('''SELECT TWEETS.TWEETID, TWEETS.TWEET, TWEETS.USERID, LOGININFO.USERID, LOGININFO.USERNAME FROM TWEETS 
                    JOIN LOGININFO ON TWEETS.USERID = LOGININFO.USERID WHERE TWEETS.TWEETID = ?''', (tweetID,))
     tweet = query1.fetchall()
@@ -410,11 +426,13 @@ the comment, and the time the comment was made. Returns the user to the main men
 def viewComments(userID, tweetID):
     conn = sqlite3.connect("twitterlike.db")
     query1 = conn.cursor()
+    # uses JOIN to allow for better information display
     query1.execute('''SELECT TWEETS.TWEETID, TWEETS.TWEET, TWEETS.USERID, LOGININFO.USERID, LOGININFO.USERNAME FROM TWEETS 
                    JOIN LOGININFO ON TWEETS.USERID = LOGININFO.USERID where TWEETS.TWEETID = ?''', (tweetID,))
     tweet = query1.fetchall()
     print(f"Viewing Tweet Comments for {tweet[0][1]}\n by {tweet[0][4]}")
     query2 = conn.cursor()
+    # uses JOIN to allow for better information display
     query2.execute('''SELECT COMMENT.COMMENT, COMMENT.COMMENTUSERID, COMMENT.COMMENTTIME, LOGININFO.USERID, LOGININFO.USERNAME 
                    FROM COMMENT JOIN LOGININFO ON COMMENT.COMMENTUSERID = LOGININFO.USERID WHERE TWEETID = ?''', (tweetID,))
     existing_comments = query2.fetchall()
