@@ -22,6 +22,7 @@ conn.execute('''
       TWEETTIME     DATE); 
       ''')
 
+# added unique constraint to follower/following relationship to prevent duplicate relationships
 conn.execute('''
      CREATE TABLE FOLLOWT
      (FOLLOWID   INT PRIMARY KEY UNIQUE,
@@ -31,6 +32,8 @@ conn.execute('''
      );
     ''')
 
+
+# added unique constraint to likeuserID/tweetID relationship to prevent duplicate relationships
 conn.execute('''
      CREATE TABLE LIKE
      (LIKEID   INT PRIMARY KEY UNIQUE,
